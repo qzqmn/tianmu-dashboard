@@ -3,8 +3,9 @@ const WORKER_URL = 'https://tianmu-worker.qzqmn.workers.dev/api/data';
 const REFRESH_INTERVAL = 60000; // 1 minute
 
 // ===== State =====
-let currentTab = 'world';
+let currentTab = 'international';
 let cryptoSortBy = 'volume';
+let cachedData = null;
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,11 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initCryptoSort();
     fetchAllData();
     
-    // Auto refresh weather & forex every minute
-    setInterval(() => {
-        fetchWeather();
-        fetchForex();
-    }, REFRESH_INTERVAL);
+    // Auto refresh every minute
+    setInterval(fetchAllData, REFRESH_INTERVAL);
 });
 
 // ===== Tab Handling =====
@@ -26,103 +24,56 @@ function initTabs() {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentTab = btn.dataset.tab;
-            fetchNews();
+            renderNews(cachedData);
         });
     });
 }
 
 // ===== Crypto Sort =====
 function initCryptoSort() {
-    document.getElementById('crypto-sort').addEventListener('change', (e) => {
-        cryptoSortBy = e.target.value;
-        fetchCrypto();
-    });
+    const sortSelect = document.getElementById('crypto-sort');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', (e) => {
+            cryptoSortBy = e.target.value;
+            renderCrypto(cachedData);
+        });
+    }
 }
 
 // ===== Fetch All Data =====
 async function fetchAllData() {
-    showLoadingOverlay();
+    showLoading();
     try {
-        const [weather, crypto, forex, stocks, news] = await Promise.all([
-            fetchWeather(),
-            fetchCrypto(),
-            fetchForex(),
-            fetchStocks(),
-            fetchNews()
-        ]);
+        const response = await fetch(WORKER_URL);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        cachedData = await response.json();
+        renderAll(cachedData);
     } catch (error) {
         console.error('Error fetching data:', error);
+        showError('無法載入數據，請稍後再試');
     } finally {
-        hideLoadingOverlay();
+        hideLoading();
     }
 }
 
 function retryAll() {
-    document.getElementById('error-modal').style.display = 'none';
     fetchAllData();
 }
 
-// ===== Fetch Functions =====
-async function fetchWeather() {
-    try {
-        const data = await fetchData('weather');
-        renderWeather(data);
-    } catch (error) {
-        console.error('Weather fetch error:', error);
-        renderWeatherError();
-    }
-}
-
-async function fetchCrypto() {
-    try {
-        const data = await fetchData('crypto');
-        renderCrypto(data);
-    } catch (error) {
-        console.error('Crypto fetch error:', error);
-        renderCryptoError();
-    }
-}
-
-async function fetchForex() {
-    try {
-        const data = await fetchData('forex');
-        renderForex(data);
-    } catch (error) {
-        console.error('Forex fetch error:', error);
-        renderForexError();
-    }
-}
-
-async function fetchStocks() {
-    try {
-        const data = await fetchData('stocks');
-        renderStocks(data);
-    } catch (error) {
-        console.error('Stocks fetch error:', error);
-        renderStocksError();
-    }
-}
-
-async function fetchNews() {
-    try {
-        const data = await fetchData(`news?category=${currentTab}`);
-        renderNews(data);
-    } catch (error) {
-        console.error('News fetch error:', error);
-        renderNewsError();
-    }
-}
-
-// ===== Generic Fetch =====
-async function fetchData(type) {
-    const url = `${WORKER_URL}?type=${type}`;
-    const response = await fetch(url);
+// ===== Render All =====
+function renderAll(data) {
+    if (!data) return;
+    renderWeather(data.weather);
+    renderCrypto(data.crypto);
+    renderForex(data.forex);
+    renderStocks(data.stocks);
+    renderNews(data.news);
     
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+    // Update last update time
+    if (data.lastUpdate) {
+        const time = new Date(data.lastUpdate).toLocaleTimeString('zh-Hant', { hour: '2-digit', minute: '2-digit' });
+        document.querySelectorAll('.update-time').forEach(el => el.textContent = `更新: ${time}`);
     }
-    
-    return response.json();
 }
 
 // ===== Render Functions =====
@@ -130,113 +81,120 @@ async function fetchData(type) {
 // Weather
 function renderWeather(data) {
     const container = document.getElementById('weather-data');
-    const cities = ['hong_kong', 'tokyo', 'bangkok'];
-    const cityNames = { hong_kong: '香港', tokyo: '東京', bangkok: '曼谷' };
+    if (!container || !data) return;
+    
+    const cities = [
+        { key: 'hongKong', name: '香港', icon: '🇭🇰' },
+        { key: 'toyama', name: '東京', icon: '🇯🇵' },
+        { key: 'bangkok', name: '曼谷', icon: '🇹🇭' }
+    ];
     
     container.innerHTML = cities.map(city => {
-        const d = data[city] || {};
+        const d = data[city.key] || {};
         return `
             <div class="weather-item">
-                <div class="city">${cityNames[city]}</div>
-                <div class="temp">${d.temp || '--'}°C</div>
-                <div class="condition">${d.condition || 'N/A'}</div>
+                <div class="city">${city.icon} ${city.name}</div>
+                <div class="temp">${d.tempC || '--'}°C</div>
+                <div class="condition">${d.weatherDesc || 'N/A'}</div>
                 <div class="details">
-                    💧 ${d.humidity || '--'}% | 🌬️ ${d.wind || '--'} km/h
+                    💧 ${d.humidity || '--'}% | 🌬️ ${d.windspeedKmph || '--'} km/h
                 </div>
             </div>
         `;
     }).join('');
-    
-    document.getElementById('weather-time').textContent = `更新: ${formatTime()}`;
-}
-
-function renderWeatherError() {
-    document.getElementById('weather-data').innerHTML = `
-        <div class="weather-item">
-            <p style="color: var(--danger);">❌ 無法載入天氣數據</p>
-        </div>
-    `;
 }
 
 // Crypto
 function renderCrypto(data) {
     const tbody = document.getElementById('crypto-data');
-    const coins = ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'ADA', 'DOGE', 'MATIC'];
+    if (!tbody || !data) return;
     
     // Sort data
     let sortedData = [...(data || [])];
     if (cryptoSortBy === 'volume') {
-        sortedData.sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0));
+        sortedData.sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
     } else {
         sortedData.sort((a, b) => (b.market_cap || 0) - (a.market_cap || 0));
     }
     
     tbody.innerHTML = sortedData.map(coin => {
-        const change = parseFloat(coin.change_24h || 0);
+        const change = parseFloat(coin.price_change_percentage_24h || 0);
         const changeClass = change >= 0 ? 'change-up' : 'change-down';
         const changeSign = change >= 0 ? '+' : '';
         
         return `
             <tr>
-                <td><strong>${coin.symbol}</strong></td>
-                <td>$${formatNumber(coin.price)}</td>
+                <td><strong>${coin.symbol?.toUpperCase()}</strong></td>
+                <td>$${formatNumber(coin.current_price)}</td>
                 <td class="${changeClass}">${changeSign}${change.toFixed(2)}%</td>
             </tr>
         `;
     }).join('');
 }
 
-function renderCryptoError() {
-    document.getElementById('crypto-data').innerHTML = `
-        <tr><td colspan="3" style="text-align: center; color: var(--danger);">❌ 無法載入加密貨幣數據</td></tr>
-    `;
-}
-
 // Forex
 function renderForex(data) {
     const container = document.getElementById('forex-data');
-    const pairs = ['USD/HKD', 'HKD/CNY', 'HKD/JPY', 'HKD/THB', 'HKD/TWD'];
+    if (!container || !data) return;
+    
+    const pairs = [
+        { key: 'usdToHkd', label: 'USD/HKD' },
+        { key: 'CNY', label: 'HKD/CNY' },
+        { key: 'JPY', label: 'HKD/JPY' },
+        { key: 'THB', label: 'HKD/THB' },
+        { key: 'TWD', label: 'HKD/TWD' }
+    ];
     
     container.innerHTML = pairs.map(pair => {
-        const d = data[pair] || {};
-        const change = parseFloat(d.change || 0);
-        const changeClass = change >= 0 ? 'change-up' : 'change-down';
-        const changeSign = change >= 0 ? '+' : '';
+        let rate = '--';
+        if (pair.key === 'usdToHkd' && data.usdToHkd) {
+            rate = data.usdToHkd.toFixed(4);
+        } else if (data.hkdRates && data.hkdRates[pair.key]) {
+            rate = data.hkdRates[pair.key].toFixed(4);
+        }
         
         return `
             <div class="forex-item">
-                <span class="forex-pair">${pair}</span>
-                <span class="forex-rate">${d.rate || '--'}</span>
-                <span class="forex-change ${changeClass}">${changeSign}${(d.change || 0)}%</span>
+                <span class="forex-pair">${pair.label}</span>
+                <span class="forex-rate">${rate}</span>
             </div>
         `;
     }).join('');
-    
-    document.getElementById('forex-time').textContent = `更新: ${formatTime()}`;
-}
-
-function renderForexError() {
-    document.getElementById('forex-data').innerHTML = `
-        <div class="forex-item" style="color: var(--danger);">❌ 無法載入匯率數據</div>
-    `;
 }
 
 // Stocks
 function renderStocks(data) {
     const container = document.getElementById('stock-data');
+    if (!container || !data) return;
     
-    const usStocks = ['TSLA', 'NVDA'];
-    const hkStocks = ['1810.HK', '0700.HK', '3690.HK', '3416'];
-    const indices = ['DJI', 'IXIC', 'HSI'];
+    const usStocks = [
+        { symbol: 'TSLA', name: 'Tesla' },
+        { symbol: 'NVDA', name: 'Nvidia' }
+    ];
     
-    const getStockHtml = (symbol, stockData) => {
-        const change = parseFloat(stockData?.change || 0);
+    const hkStocks = [
+        { symbol: '1810.HK', name: '小米' },
+        { symbol: '0700.HK', name: '騰訊' },
+        { symbol: '3690.HK', name: '美團' },
+        { symbol: '3416.HK', name: '3416' }
+    ];
+    
+    const indices = [
+        { symbol: '^DJI', name: '道瓊斯' },
+        { symbol: '^IXIC', name: '納斯達克' },
+        { symbol: '^HSI', name: '恒生' }
+    ];
+    
+    const getStockHtml = (stock) => {
+        const stockData = data.find(s => s.symbol === stock.symbol) || {};
+        const change = parseFloat(stockData.changePercent || 0);
         const changeClass = change >= 0 ? 'change-up' : 'change-down';
         const changeSign = change >= 0 ? '+' : '';
+        
         return `
             <div class="stock-item">
-                <span class="stock-name">${symbol}</span>
-                <span class="stock-price">${stockData?.price || '--'}</span>
+                <span class="stock-name">${stock.name}</span>
+                <span class="stock-price">${stockData.price ? '$' + formatNumber(stockData.price) : '--'}</span>
                 <span class="stock-change ${changeClass}">${changeSign}${change.toFixed(2)}%</span>
             </div>
         `;
@@ -244,49 +202,57 @@ function renderStocks(data) {
     
     container.innerHTML = `
         <div class="stock-section">
-            <h3>美股</h3>
+            <h3>🇺🇸 美股</h3>
             <div class="stock-list">
-                ${usStocks.map(s => getStockHtml(s, data[s])).join('')}
+                ${usStocks.map(s => getStockHtml(s)).join('')}
             </div>
         </div>
         <div class="stock-section">
-            <h3>港股</h3>
+            <h3>🇭🇰 港股</h3>
             <div class="stock-list">
-                ${hkStocks.map(s => getStockHtml(s, data[s])).join('')}
+                ${hkStocks.map(s => getStockHtml(s)).join('')}
             </div>
         </div>
         <div class="stock-section">
-            <h3>指數</h3>
+            <h3>📊 指數</h3>
             <div class="stock-list">
-                ${indices.map(s => getStockHtml(s, data[s])).join('')}
+                ${indices.map(s => getStockHtml(s)).join('')}
             </div>
         </div>
-    `;
-}
-
-function renderStocksError() {
-    document.getElementById('stock-data').innerHTML = `
-        <div class="stock-item" style="color: var(--danger); grid-column: 1/-1;">❌ 無法載入股票數據</div>
     `;
 }
 
 // News
-function renderNews(data) {
+function renderNews(newsData) {
     const container = document.getElementById('news-data');
-    const articles = data?.articles || [];
+    if (!container || !newsData) return;
     
-    if (articles.length === 0) {
+    // Map currentTab to news category
+    const categoryMap = {
+        'international': 'international',
+        'intl-business': 'intlBusiness',
+        'hong-kong': 'hongKong',
+        'hk-business': 'hkBusiness',
+        'tech': 'tech',
+        'hacker': 'hacker',
+        'openclaw': 'openclaw'
+    };
+    
+    const categoryKey = categoryMap[currentTab] || 'international';
+    const news = newsData[categoryKey];
+    
+    if (!news || !news.items || news.items.length === 0) {
         container.innerHTML = '<p style="color: var(--text-secondary);">暫無新聞</p>';
         return;
     }
     
     container.innerHTML = `
         <ul class="news-list">
-            ${articles.slice(0, 10).map(article => `
+            ${news.items.slice(0, 10).map(item => `
                 <li>
-                    <a href="${article.url}" target="_blank" rel="noopener">
-                        <div class="news-title">${article.title}</div>
-                        ${article.source ? `<div class="news-meta">${article.source} | ${article.time || ''}</div>` : ''}
+                    <a href="${item.link}" target="_blank" rel="noopener">
+                        <div class="news-title">${item.title}</div>
+                        <div class="news-meta">${item.source || ''} | ${item.pubDate ? new Date(item.pubDate).toLocaleDateString('zh-Hant') : ''}</div>
                     </a>
                 </li>
             `).join('')}
@@ -294,27 +260,25 @@ function renderNews(data) {
     `;
 }
 
-function renderNewsError() {
-    document.getElementById('news-data').innerHTML = '<p style="color: var(--danger);">❌ 無法載入新聞</p>';
+// ===== UI Functions =====
+
+function showLoading() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.style.display = 'flex';
 }
 
-// ===== Utilities =====
-
-function showLoadingOverlay() {
-    document.getElementById('loading-overlay').style.display = 'flex';
-}
-
-function hideLoadingOverlay() {
-    document.getElementById('loading-overlay').style.display = 'none';
+function hideLoading() {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.style.display = 'none';
 }
 
 function showError(message) {
-    document.getElementById('error-message').textContent = message;
-    document.getElementById('error-modal').style.display = 'flex';
-}
-
-function formatTime() {
-    return new Date().toLocaleTimeString('zh-Hant', { hour: '2-digit', minute: '2-digit' });
+    const modal = document.getElementById('error-modal');
+    const msg = document.getElementById('error-message');
+    if (modal && msg) {
+        msg.textContent = message;
+        modal.style.display = 'flex';
+    }
 }
 
 function formatNumber(num) {
