@@ -230,12 +230,8 @@ function renderNews(newsData) {
     // Map currentTab to news category (match HTML data-tab values)
     const categoryMap = {
         'world': 'international',
-        'world-finance': 'intlBusiness',
         'hk': 'hongKong',
-        'hk-finance': 'hkBusiness',
         'tech': 'tech',
-        'hacker': 'hacker',
-        'openclaw': 'openclaw'
     };
     
     const categoryKey = categoryMap[currentTab] || 'international';
