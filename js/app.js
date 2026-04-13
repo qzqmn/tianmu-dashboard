@@ -24,7 +24,7 @@ function initTabs() {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentTab = btn.dataset.tab;
-            renderNews(cachedData);
+            renderNews(cachedData.news);
         });
     });
 }
