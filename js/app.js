@@ -1,5 +1,6 @@
 // ===== Config =====
 const WORKER_URL = 'https://tianmu-worker.qzqmn.workers.dev/api/data';
+const WORKER_BASE = 'https://tianmu-worker.qzqmn.workers.dev';
 const REFRESH_INTERVAL = 60000; // 1 minute
 
 // ===== State =====
@@ -11,6 +12,7 @@ let cachedData = null;
 document.addEventListener('DOMContentLoaded', () => {
     initTabs();
     initCryptoSort();
+    initStockSearch();
     fetchAllData();
     
     // Auto refresh every minute
@@ -38,6 +40,84 @@ function initCryptoSort() {
             renderCrypto(cachedData);
         });
     }
+}
+
+// ===== Stock Search =====
+function initStockSearch() {
+    const input = document.getElementById('stock-input');
+    if (input) {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') searchStock();
+        });
+    }
+}
+
+async function searchStock() {
+    const input = document.getElementById('stock-input');
+    const resultDiv = document.getElementById('stock-search-result');
+    if (!input || !resultDiv) return;
+    
+    const symbol = input.value.trim().toUpperCase();
+    if (!symbol) return;
+    
+    resultDiv.style.display = 'none';
+    resultDiv.innerHTML = `
+        <div style="text-align:center;padding:10px;">
+            <div class="spinner"></div>
+        </div>
+    `;
+    resultDiv.style.display = 'flex';
+    
+    try {
+        const res = await fetch(`${WORKER_BASE}/api/stock?symbol=${encodeURIComponent(symbol)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        
+        if (json.error || !json.quote?.price) {
+            resultDiv.innerHTML = `
+                <div style="flex:1">
+                    <div class="stock-sym">${symbol}</div>
+                    <div class="stock-name" style="color:var(--text-dim)">找不到該股票</div>
+                </div>
+                <button class="stock-search-close" onclick="closeStockSearch()">✕</button>
+            `;
+            return;
+        }
+        
+        const q = json.quote;
+        const change = parseFloat(q.changePercent || 0);
+        const changeClass = change >= 0 ? 'up' : 'down';
+        const changeSign = change >= 0 ? '+' : '';
+        const changeStr = q.changePercent != null ? `${changeSign}${change.toFixed(2)}%` : '--';
+        
+        resultDiv.innerHTML = `
+            <div style="flex:1">
+                <div class="stock-sym">${q.symbol}</div>
+                <div class="stock-name">${q.name || q.symbol}</div>
+            </div>
+            <div style="text-align:right">
+                <div class="stock-price">$${formatNumber(q.price)}</div>
+                <div class="stock-change ${changeClass}">${changeStr}</div>
+            </div>
+            <button class="stock-search-close" onclick="closeStockSearch()">✕</button>
+        `;
+    } catch (err) {
+        console.error('[stock search] error:', err);
+        resultDiv.innerHTML = `
+            <div style="flex:1">
+                <div class="stock-sym" style="color:var(--down)">查詢失敗</div>
+                <div class="stock-name" style="color:var(--text-dim)">${err.message}</div>
+            </div>
+            <button class="stock-search-close" onclick="closeStockSearch()">✕</button>
+        `;
+    }
+}
+
+function closeStockSearch() {
+    const resultDiv = document.getElementById('stock-search-result');
+    const input = document.getElementById('stock-input');
+    if (resultDiv) resultDiv.style.display = 'none';
+    if (input) input.value = '';
 }
 
 // ===== Fetch All Data =====
@@ -69,10 +149,10 @@ function renderAll(data) {
     renderStocks(data.stocks);
     renderNews(data.news);
     
-    // Update last update time
+    // Update last update time for all tabs
     if (data.lastUpdate) {
         const time = new Date(data.lastUpdate).toLocaleTimeString('zh-Hant', { hour: '2-digit', minute: '2-digit' });
-        document.querySelectorAll('.update-time').forEach(el => el.textContent = `更新: ${time}`);
+        document.querySelectorAll('.update-time').forEach(el => el.textContent = `更新 ${time}`);
     }
 }
 
@@ -109,7 +189,6 @@ function renderCrypto(data) {
     const tbody = document.getElementById('crypto-data');
     if (!tbody || !data) return;
     
-    // Sort data
     let sortedData = [...(data || [])];
     if (cryptoSortBy === 'volume') {
         sortedData.sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
@@ -188,14 +267,20 @@ function renderStocks(data) {
     const getStockHtml = (stock) => {
         const stockData = data.find(s => s.symbol === stock.symbol) || {};
         const change = parseFloat(stockData.changePercent || 0);
-        const changeClass = change >= 0 ? 'change-up' : 'change-down';
+        const changeClass = change >= 0 ? 'up' : 'down';
         const changeSign = change >= 0 ? '+' : '';
+        const priceStr = stockData.price ? '$' + formatNumber(stockData.price) : '--';
         
         return `
             <div class="stock-item">
-                <span class="stock-name">${stock.name}</span>
-                <span class="stock-price">${stockData.price ? '$' + formatNumber(stockData.price) : '--'}</span>
-                <span class="stock-change ${changeClass}">${changeSign}${change.toFixed(2)}%</span>
+                <div class="stock-item-left">
+                    <span class="stock-name">${stock.name}</span>
+                    <span class="stock-symbol">${stock.symbol}</span>
+                </div>
+                <div class="stock-item-right">
+                    <span class="stock-price">${priceStr}</span>
+                    <span class="stock-change ${changeClass}">${changeSign}${change.toFixed(2)}%</span>
+                </div>
             </div>
         `;
     };
@@ -227,7 +312,6 @@ function renderNews(newsData) {
     const container = document.getElementById('news-data');
     if (!container || !newsData) return;
     
-    // Map currentTab to news category (match HTML data-tab values)
     const categoryMap = {
         'world': 'international',
         'hk': 'hongKong',
@@ -238,7 +322,7 @@ function renderNews(newsData) {
     const news = newsData[categoryKey];
     
     if (!news || !news.items || news.items.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-secondary);">暫無新聞</p>';
+        container.innerHTML = '<p style="color: var(--text-secondary);padding:20px 0;text-align:center;">暫無新聞</p>';
         return;
     }
     

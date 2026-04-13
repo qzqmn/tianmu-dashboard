@@ -27,16 +27,48 @@
                 </div>
             </section>
 
+            <!-- 匯率面板 -->
+            <section class="card forex-card">
+                <div class="card-header">
+                    <h2>💱 匯率</h2>
+                    <span class="last-updated update-time" id="forex-time"></span>
+                </div>
+                <div class="forex-grid" id="forex-data">
+                    <div class="forex-item loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 股票面板 -->
+            <section class="card stock-card">
+                <div class="card-header">
+                    <h2>📈 股票</h2>
+                    <span class="last-updated update-time" id="stock-time"></span>
+                </div>
+                <div class="stock-search-bar">
+                    <input type="text" id="stock-input" placeholder="輸入股票代碼，如：AAPL、9988.HK" maxlength="20">
+                    <button class="stock-search-btn" id="stock-search-btn" onclick="searchStock()">查詢</button>
+                </div>
+                <div class="stock-search-result" id="stock-search-result" style="display:none;"></div>
+                <div class="stock-grid" id="stock-data">
+                    <div class="stock-item loading"><div class="spinner"></div></div>
+                </div>
+            </section>
+
             <!-- 加密貨幣面板 -->
             <section class="card crypto-card">
                 <div class="card-header">
                     <h2>💰 加密貨幣</h2>
-                    <div class="crypto-controls">
-                        <select id="crypto-sort">
-                            <option value="volume">按24h交易量</option>
-                            <option value="marketcap">按市值</option>
-                        </select>
-                        <button class="refresh-btn" onclick="fetchAllData()">🔄</button>
+                    <div class="crypto-header-right">
+                        <span class="last-updated update-time" id="crypto-time"></span>
+                        <div class="crypto-controls">
+                            <select id="crypto-sort">
+                                <option value="volume">按24h交易量</option>
+                                <option value="marketcap">按市值</option>
+                            </select>
+                            <button class="refresh-btn" onclick="fetchAllData()">🔄</button>
+                        </div>
                     </div>
                 </div>
                 <div class="table-container">
@@ -55,38 +87,11 @@
                 </div>
             </section>
 
-            <!-- 匯率面板 -->
-            <section class="card forex-card">
-                <div class="card-header">
-                    <h2>💱 匯率</h2>
-                    <span class="last-updated update-time" id="forex-time"></span>
-                </div>
-                <div class="forex-grid" id="forex-data">
-                    <div class="forex-item loading">
-                        <div class="spinner"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 股票面板 -->
-            <section class="card stock-card">
-                <div class="card-header">
-                    <h2>📈 股票</h2>
-                </div>
-                <div class="stock-grid" id="stock-data">
-                    <div class="stock-section">
-                        <h3>🇺🇸 美股</h3>
-                        <div class="stock-list">
-                            <div class="stock-item loading"><div class="spinner"></div></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             <!-- 新聞面板 -->
             <section class="card news-card">
                 <div class="card-header">
                     <h2>📰 新聞</h2>
+                    <span class="last-updated update-time" id="news-time"></span>
                 </div>
                 <div class="news-tabs">
                     <button class="tab-btn active" data-tab="world">國際時事</button>
