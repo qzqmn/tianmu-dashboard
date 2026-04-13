@@ -3,7 +3,7 @@ const WORKER_URL = 'https://tianmu-worker.qzqmn.workers.dev/api/data';
 const REFRESH_INTERVAL = 60000; // 1 minute
 
 // ===== State =====
-let currentTab = 'international';
+let currentTab = 'world';
 let cryptoSortBy = 'volume';
 let cachedData = null;
 
@@ -227,12 +227,12 @@ function renderNews(newsData) {
     const container = document.getElementById('news-data');
     if (!container || !newsData) return;
     
-    // Map currentTab to news category
+    // Map currentTab to news category (match HTML data-tab values)
     const categoryMap = {
-        'international': 'international',
-        'intl-business': 'intlBusiness',
-        'hong-kong': 'hongKong',
-        'hk-business': 'hkBusiness',
+        'world': 'international',
+        'world-finance': 'intlBusiness',
+        'hk': 'hongKong',
+        'hk-finance': 'hkBusiness',
         'tech': 'tech',
         'hacker': 'hacker',
         'openclaw': 'openclaw'
