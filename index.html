@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天幕 Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌐 天幕 Dashboard</h1>
+            <p class="subtitle">即時數據面板</p>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- 天氣面板 -->
+            <section class="card weather-card">
+                <div class="card-header">
+                    <h2>🌤️ 天氣</h2>
+                    <span class="last-updated" id="weather-time"></span>
+                </div>
+                <div class="weather-grid" id="weather-data">
+                    <div class="weather-item loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 加密貨幣面板 -->
+            <section class="card crypto-card">
+                <div class="card-header">
+                    <h2>💰 加密貨幣</h2>
+                    <div class="controls">
+                        <select id="crypto-sort">
+                            <option value="volume">按交易量</option>
+                            <option value="market_cap">按交易額</option>
+                        </select>
+                        <button class="btn-refresh" onclick="fetchCrypto()">🔄</button>
+                    </div>
+                </div>
+                <div class="crypto-table-wrapper">
+                    <table class="crypto-table">
+                        <thead>
+                            <tr>
+                                <th>貨幣</th>
+                                <th>價格 (USD)</th>
+                                <th>24h 變化</th>
+                            </tr>
+                        </thead>
+                        <tbody id="crypto-data">
+                            <tr><td colspan="3"><div class="spinner"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 匯率面板 -->
+            <section class="card forex-card">
+                <div class="card-header">
+                    <h2>💱 匯率</h2>
+                    <span class="last-updated" id="forex-time"></span>
+                </div>
+                <div class="forex-grid" id="forex-data">
+                    <div class="forex-item loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 股票面板 -->
+            <section class="card stock-card">
+                <div class="card-header">
+                    <h2>📈 股票</h2>
+                    <button class="btn-refresh" onclick="fetchStocks()">🔄</button>
+                </div>
+                <div class="stock-grid" id="stock-data">
+                    <div class="stock-section">
+                        <h3>美股</h3>
+                        <div class="stock-list">
+                            <div class="stock-item loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                    <div class="stock-section">
+                        <h3>港股</h3>
+                        <div class="stock-list">
+                            <div class="stock-item loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                    <div class="stock-section">
+                        <h3>指數</h3>
+                        <div class="stock-list">
+                            <div class="stock-item loading"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 新聞面板 -->
+            <section class="card news-card">
+                <div class="card-header">
+                    <h2>📰 新聞</h2>
+                </div>
+                <div class="news-tabs">
+                    <button class="tab-btn active" data-tab="world">國際時事</button>
+                    <button class="tab-btn" data-tab="world-finance">國際財經</button>
+                    <button class="tab-btn" data-tab="hk">香港時事</button>
+                    <button class="tab-btn" data-tab="hk-finance">香港財經</button>
+                    <button class="tab-btn" data-tab="tech">科技趨勢</button>
+                    <button class="tab-btn" data-tab="openclaw">OpenClaw</button>
+                </div>
+                <div class="news-content" id="news-data">
+                    <ul class="news-list">
+                        <li class="loading"><div class="spinner"></div></li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+
+        <!-- 全局 Loading Overlay -->
+        <div class="loading-overlay" id="loading-overlay" style="display: none;">
+            <div class="spinner large"></div>
+        </div>
+
+        <!-- Error Modal -->
+        <div class="error-modal" id="error-modal" style="display: none;">
+            <div class="error-content">
+                <h3>❌ 載入失敗</h3>
+                <p id="error-message"></p>
+                <button class="btn-retry" onclick="retryAll()">重試</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
