@@ -3,6 +3,53 @@ const WORKER_URL = 'https://tianmu-worker.qzqmn.workers.dev/api/data';
 const WORKER_BASE = 'https://tianmu-worker.qzqmn.workers.dev';
 const REFRESH_INTERVAL = 60000; // 1 minute
 
+// Binance API fallback for crypto (used when CoinGecko is rate-limited)
+const BINANCE_API = 'https://api.binance.com/api/v3/ticker/24hr';
+const CRYPTO_SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'MATICUSDT'];
+const SYMBOL_MAP = {
+  BTCUSDT: { id: 'bitcoin', symbol: 'btc', name: 'Bitcoin' },
+  ETHUSDT: { id: 'ethereum', symbol: 'eth', name: 'Ethereum' },
+  SOLUSDT: { id: 'solana', symbol: 'sol', name: 'Solana' },
+  BNBUSDT: { id: 'binancecoin', symbol: 'bnb', name: 'BNB' },
+  XRPUSDT: { id: 'ripple', symbol: 'xrp', name: 'XRP' },
+  ADAUSDT: { id: 'cardano', symbol: 'ada', name: 'Cardano' },
+  DOGEUSDT: { id: 'dogecoin', symbol: 'doge', name: 'Dogecoin' },
+  MATICUSDT: { id: 'polygon', symbol: 'matic', name: 'Polygon' },
+};
+
+// Fetch crypto from Binance (fallback when CoinGecko fails)
+async function fetchCryptoFromBinance() {
+  try {
+    // Binance requires URL-encoded JSON array for multiple symbols
+    const encoded = encodeURIComponent(JSON.stringify(CRYPTO_SYMBOLS));
+    const res = await fetch(`${BINANCE_API}?symbols=${encoded}`);
+    if (!res.ok) throw new Error(`Binance HTTP ${res.status}`);
+    const data = await res.json();
+    if (!Array.isArray(data)) throw new Error('Not an array');
+    return data.map(ticker => {
+      const info = SYMBOL_MAP[ticker.symbol] || { id: ticker.symbol.toLowerCase(), symbol: ticker.symbol.toLowerCase().replace('usdt', ''), name: ticker.symbol };
+      const price = parseFloat(ticker.lastPrice);
+      const volume = parseFloat(ticker.quoteVolume);
+      const change = parseFloat(ticker.priceChangePercent);
+      return {
+        id: info.id,
+        symbol: info.symbol,
+        name: info.name,
+        current_price: price,
+        market_cap: null,
+        price_change_percentage_24h: change,
+        total_volume: volume,
+        high_24h: parseFloat(ticker.highPrice),
+        low_24h: parseFloat(ticker.lowPrice),
+        image: null,
+      };
+    });
+  } catch (err) {
+    console.error('[crypto] Binance fallback failed:', err);
+    return null;
+  }
+}
+
 // ===== State =====
 let currentTab = 'world';
 let cryptoSortBy = 'volume';
@@ -126,7 +173,19 @@ async function fetchAllData() {
     try {
         const response = await fetch(WORKER_URL);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        cachedData = await response.json();
+        const json = await response.json();
+        
+        // Fallback: if crypto is empty, try Binance API directly
+        if (!json.crypto || json.crypto.length === 0) {
+            console.log('[fetch] CoinGecko empty, trying Binance fallback...');
+            const binanceData = await fetchCryptoFromBinance();
+            if (binanceData && binanceData.length > 0) {
+                json.crypto = binanceData;
+                console.log('[fetch] Binance fallback OK');
+            }
+        }
+        
+        cachedData = json;
         renderAll(cachedData);
     } catch (error) {
         console.error('Error fetching data:', error);
@@ -187,7 +246,12 @@ function renderWeather(data) {
 // Crypto
 function renderCrypto(data) {
     const tbody = document.getElementById('crypto-data');
-    if (!tbody || !data) return;
+    if (!tbody) return;
+    
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-dim);padding:20px;">加密貨幣數據載入中，請稍候...</td></tr>';
+        return;
+    }
     
     let sortedData = [...(data || [])];
     if (cryptoSortBy === 'volume') {

@@ -113,7 +113,7 @@ header h1 {
 .forex-card   { grid-column: 2; grid-row: 1; }
 .stock-card   { grid-column: 3; grid-row: 1; }
 .crypto-card  { grid-column: 1 / 4; grid-row: 2; }
-.news-card    { grid-column: 1 / 4; grid-row: 3; }
+.news-card    { grid-column: 1 / 4; grid-row: 3; overflow: visible; }
 
 /* ===== Cards ===== */
 .card {
