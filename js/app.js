@@ -20,6 +20,7 @@ const SYMBOL_MAP = {
 // Fetch crypto from Binance (fallback when CoinGecko fails)
 async function fetchCryptoFromBinance() {
   try {
+    // Binance requires URL-encoded JSON array for multiple symbols
     const encoded = encodeURIComponent(JSON.stringify(CRYPTO_SYMBOLS));
     const res = await fetch(`${BINANCE_API}?symbols=${encoded}`);
     if (!res.ok) throw new Error(`Binance HTTP ${res.status}`);
@@ -174,7 +175,7 @@ async function fetchAllData() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const json = await response.json();
         
-        // Fallback: if crypto is empty (CoinGecko rate-limited), try Binance
+        // Fallback: if crypto is empty, try Binance API directly
         if (!json.crypto || json.crypto.length === 0) {
             console.log('[fetch] CoinGecko empty, trying Binance fallback...');
             const binanceData = await fetchCryptoFromBinance();
@@ -184,6 +185,14 @@ async function fetchAllData() {
             }
         }
         
+        // Always try direct news fetch from rss2json (bypasses CF Worker news block)
+        const [intlNews, hkNews] = await Promise.all([
+            fetchNewsDirect('international'),
+            fetchNewsDirect('hongKong'),
+        ]);
+        if (intlNews.length > 0) json.news.international.items = intlNews;
+        if (hkNews.length > 0) json.news.hongKong.items = hkNews;
+        
         cachedData = json;
         renderAll(cachedData);
     } catch (error) {
@@ -191,6 +200,32 @@ async function fetchAllData() {
         showError('無法載入數據，請稍後再試');
     } finally {
         hideLoading();
+    }
+}
+
+// Direct news fetch from browser via rss2json API (bypasses CF Worker Google News block)
+async function fetchNewsDirect(category) {
+    const feedUrls = category === 'international'
+        ? 'https://feeds.bbci.co.uk/zhongwen/trad/rss.xml'
+        : 'https://feeds.bbci.co.uk/zhongwen/simp/rss.xml';
+    
+    try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrls)}`, { signal: controller.signal });
+        clearTimeout(tid);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data.status !== 'ok' || !data.items?.length) throw new Error('Bad response');
+        return data.items.slice(0, 10).map(item => ({
+            title: item.title,
+            link: item.link,
+            pubDate: item.pubDate,
+            source: data.feed?.title || 'RSS',
+        }));
+    } catch (e) {
+        console.warn(`[news] rss2json failed (${category}):`, e.message);
+        return [];
     }
 }
 
@@ -245,7 +280,12 @@ function renderWeather(data) {
 // Crypto
 function renderCrypto(data) {
     const tbody = document.getElementById('crypto-data');
-    if (!tbody || !data) return;
+    if (!tbody) return;
+    
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-dim);padding:20px;">加密貨幣數據載入中，請稍候...</td></tr>';
+        return;
+    }
     
     let sortedData = [...(data || [])];
     if (cryptoSortBy === 'volume') {
@@ -374,6 +414,8 @@ function renderNews(newsData) {
         'world': 'international',
         'hk': 'hongKong',
         'tech': 'tech',
+        'crypto': 'crypto',
+        'business': 'business',
     };
     
     const categoryKey = categoryMap[currentTab] || 'international';
@@ -386,7 +428,7 @@ function renderNews(newsData) {
     
     container.innerHTML = `
         <ul class="news-list">
-            ${news.items.slice(0, 10).map(item => `
+            ${news.items.slice(0, 20).map(item => `
                 <li>
                     <a href="${item.link}" target="_blank" rel="noopener">
                         <div class="news-title">${item.title}</div>
