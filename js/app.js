@@ -212,12 +212,12 @@ async function fetchNewsDirect(category) {
     // Alternative RSS feeds that work from browser
     const feeds = category === 'international'
         ? [
-            { url: 'https://feeds.bbci.co.uk/news/world/rss.xml', source: 'BBC' },
-            { url: 'https://rss.dw.com/rdf/rss-zh-tw-all', source: 'DW' },
+            { url: 'https://feeds.bbci.co.uk/zhongwen/trad/rss.xml', source: 'BBC中文' },
+            { url: 'https://rss.dw.com/rdf/rss-zh-tw', source: 'DW中文' },
           ]
         : [
-            { url: 'https://web feeder.vercel.app/rss?url=https://news.rthk.hk/rthk/news/rss/C0007115.xml', source: 'RTHK' },
-            { url: 'https://web feeder.vercel.app/rss?url=https://www.hk01.com/rss.xml', source: 'HK01' },
+            { url: 'https://www.thestandard.com.hk/rss/rss.php', source: '英文虎報' },
+            { url: 'https://www.singtao.com/rss/xml/hk/hk_credit.xml', source: '星島' },
           ];
     
     // Parse RSS XML in browser
