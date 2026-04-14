@@ -207,45 +207,30 @@ async function fetchAllData() {
     }
 }
 
-// Direct news fetch from browser (bypasses Cloudflare Worker limitations)
+// Direct news fetch from browser via rss2json API (bypasses CF Worker Google News block)
 async function fetchNewsDirect(category) {
-    const feeds = category === 'international'
-        ? [
-            { url: 'https://feeds.bbci.co.uk/zhongwen/trad/rss.xml', source: 'BBC中文' },
-          ]
-        : [
-            { url: 'https://feeds.bbci.co.uk/zhongwen/simp/rss.xml', source: 'BBC中文' },
-          ];
+    const feedUrls = category === 'international'
+        ? 'https://feeds.bbci.co.uk/zhongwen/trad/rss.xml'
+        : 'https://feeds.bbci.co.uk/zhongwen/simp/rss.xml';
     
-    const parseRSS = (text, source) => {
-        const items = [];
-        const itemRe = /<item>([\s\S]*?)<\/item>/g;
-        let match;
-        while ((match = itemRe.exec(text)) !== null && items.length < 10) {
-            const block = match[1];
-            const title = block.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/)?.[1] ?? block.match(/<title>([\s\S]*?)<\/title>/)?.[1] ?? '';
-            const link = block.match(/<link>([\s\S]*?)<\/link>/)?.[1] ?? '';
-            const pubDate = block.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1] ?? '';
-            if (title) items.push({ title: title.trim(), link: link.trim(), pubDate: pubDate.trim(), source });
-        }
-        return items;
-    };
-    
-    for (const feed of feeds) {
-        try {
-            const controller = new AbortController();
-            const tid = setTimeout(() => controller.abort(), 4000);
-            const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(feed.url)}`, { signal: controller.signal });
-            clearTimeout(tid);
-            if (!res.ok) continue;
-            const text = await res.text();
-            const items = parseRSS(text, feed.source);
-            if (items.length > 0) return items;
-        } catch (e) {
-            if (e.name !== 'AbortError') console.warn(`[news] ${feed.source} failed:`, e.message);
-        }
+    try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrls)}`, { signal: controller.signal });
+        clearTimeout(tid);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data.status !== 'ok' || !data.items?.length) throw new Error('Bad response');
+        return data.items.slice(0, 10).map(item => ({
+            title: item.title,
+            link: item.link,
+            pubDate: item.pubDate,
+            source: data.feed?.title || 'RSS',
+        }));
+    } catch (e) {
+        console.warn(`[news] rss2json failed (${category}):`, e.message);
+        return [];
     }
-    return [];
 }
 
 function retryAll() {
