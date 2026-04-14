@@ -209,18 +209,14 @@ async function fetchAllData() {
 
 // Direct news fetch from browser (bypasses Cloudflare Worker limitations)
 async function fetchNewsDirect(category) {
-    // Alternative RSS feeds that work from browser
     const feeds = category === 'international'
         ? [
             { url: 'https://feeds.bbci.co.uk/zhongwen/trad/rss.xml', source: 'BBC中文' },
-            { url: 'https://rss.dw.com/rdf/rss-zh-tw', source: 'DW中文' },
           ]
         : [
-            { url: 'https://www.thestandard.com.hk/rss/rss.php', source: '英文虎報' },
-            { url: 'https://www.singtao.com/rss/xml/hk/hk_credit.xml', source: '星島' },
+            { url: 'https://feeds.bbci.co.uk/zhongwen/simp/rss.xml', source: 'BBC中文' },
           ];
     
-    // Parse RSS XML in browser
     const parseRSS = (text, source) => {
         const items = [];
         const itemRe = /<item>([\s\S]*?)<\/item>/g;
@@ -237,15 +233,16 @@ async function fetchNewsDirect(category) {
     
     for (const feed of feeds) {
         try {
-            // Use a CORS proxy since direct RSS fetch from browser will fail
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(feed.url)}`;
-            const res = await fetch(proxyUrl, { timeout: 8000 });
+            const controller = new AbortController();
+            const tid = setTimeout(() => controller.abort(), 4000);
+            const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(feed.url)}`, { signal: controller.signal });
+            clearTimeout(tid);
             if (!res.ok) continue;
             const text = await res.text();
             const items = parseRSS(text, feed.source);
             if (items.length > 0) return items;
         } catch (e) {
-            console.warn(`[news] ${feed.source} failed:`, e.message);
+            if (e.name !== 'AbortError') console.warn(`[news] ${feed.source} failed:`, e.message);
         }
     }
     return [];
