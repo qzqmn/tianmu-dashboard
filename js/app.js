@@ -185,17 +185,13 @@ async function fetchAllData() {
             }
         }
         
-        // Fallback: if news is empty, fetch directly from browser
-        const newsEmpty = !json.news?.international?.items?.length && !json.news?.hongKong?.items?.length;
-        if (newsEmpty) {
-            console.log('[fetch] News empty, trying direct browser fetch...');
-            const [intlNews, hkNews] = await Promise.all([
-                fetchNewsDirect('international'),
-                fetchNewsDirect('hongKong'),
-            ]);
-            if (intlNews.length > 0) json.news.international.items = intlNews;
-            if (hkNews.length > 0) json.news.hongKong.items = hkNews;
-        }
+        // Always try direct news fetch from rss2json (bypasses CF Worker news block)
+        const [intlNews, hkNews] = await Promise.all([
+            fetchNewsDirect('international'),
+            fetchNewsDirect('hongKong'),
+        ]);
+        if (intlNews.length > 0) json.news.international.items = intlNews;
+        if (hkNews.length > 0) json.news.hongKong.items = hkNews;
         
         cachedData = json;
         renderAll(cachedData);
