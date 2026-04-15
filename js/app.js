@@ -73,24 +73,7 @@ function initTabs() {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentTab = btn.dataset.tab;
-            
-            // Show/hide sections based on tab
-            const newsCard = document.querySelector('.news-card');
-            const portfolioSection = document.getElementById('portfolio-section');
-            
-            if (currentTab === 'portfolio') {
-                // Show portfolio, hide news
-                if (newsCard) newsCard.style.display = 'none';
-                if (portfolioSection) {
-                    portfolioSection.style.display = 'block';
-                    renderPortfolio(cachedData.portfolio);
-                }
-            } else {
-                // Show news, hide portfolio
-                if (newsCard) newsCard.style.display = 'block';
-                if (portfolioSection) portfolioSection.style.display = 'none';
-                renderNews(cachedData.news);
-            }
+            renderNews(cachedData.news);
         });
     });
 }
@@ -224,6 +207,7 @@ function renderAll(data) {
     renderForex(data.forex);
     renderStocks(data.stocks);
     renderNews(data.news);
+    renderPortfolio(data.portfolio);
     
     // Update last update time for all tabs
     if (data.lastUpdate) {
