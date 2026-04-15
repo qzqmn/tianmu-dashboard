@@ -476,6 +476,89 @@ header h1 {
 .stock-change.up { color: var(--up); }
 .stock-change.down { color: var(--down); }
 
+/* ===== Watchlist ===== */
+.watchlist-section {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.watchlist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+}
+
+.watchlist-stocks {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.watchlist-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px !important;
+    background: var(--bg-secondary) !important;
+    border-radius: 6px;
+}
+
+.watchlist-item .stock-info {
+    flex: 1;
+}
+
+.watchlist-item .stock-sym {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.watchlist-item .stock-name {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+}
+
+.watchlist-remove {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+
+.watchlist-remove:hover {
+    background: var(--loss);
+    color: white;
+}
+
+.watchlist-btn {
+    background: none;
+    border: 1px solid var(--text-dim);
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 4px;
+}
+
+.watchlist-btn:hover {
+    background: var(--up);
+    border-color: var(--up);
+    color: white;
+}
+
+.watchlist-btn.added {
+    background: var(--up);
+    border-color: var(--up);
+    color: white;
+}
+
 /* ===== Crypto ===== */
 .crypto-header-right {
     display: flex;

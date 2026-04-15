@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initTabs();
     initCryptoSort();
     initStockSearch();
+    renderWatchlist();
     fetchAllData();
     
     // Auto refresh every minute
@@ -99,6 +100,65 @@ function initStockSearch() {
     }
 }
 
+// ===== Watchlist Functions =====
+function getWatchlist() {
+    try {
+        return JSON.parse(localStorage.getItem('stockWatchlist') || '[]');
+    } catch { return []; }
+}
+
+function saveWatchlist(list) {
+    localStorage.setItem('stockWatchlist', JSON.stringify(list));
+}
+
+function isInWatchlist(symbol) {
+    return getWatchlist().some(s => s.symbol === symbol);
+}
+
+function addToWatchlist(symbol, name, price, changePercent) {
+    const list = getWatchlist();
+    if (list.some(s => s.symbol === symbol)) return;
+    list.push({ symbol, name, price, changePercent, addedAt: Date.now() });
+    saveWatchlist(list);
+    renderWatchlist();
+}
+
+function removeFromWatchlist(symbol) {
+    let list = getWatchlist();
+    list = list.filter(s => s.symbol !== symbol);
+    saveWatchlist(list);
+    renderWatchlist();
+}
+
+function renderWatchlist() {
+    const container = document.getElementById('watchlist-stocks');
+    if (!container) return;
+    const list = getWatchlist();
+    
+    if (list.length === 0) {
+        container.innerHTML = '<div class="stock-item" style="color:var(--text-dim);padding:10px">關注列表係空的<br><small>搜索股票並點擊 + 加入關注</small></div>';
+        return;
+    }
+    
+    container.innerHTML = list.map(s => {
+        const change = parseFloat(s.changePercent || 0);
+        const changeClass = change >= 0 ? 'up' : 'down';
+        const changeSign = change >= 0 ? '+' : '';
+        return `
+            <div class="stock-item watchlist-item">
+                <div class="stock-info">
+                    <div class="stock-sym">${s.symbol}</div>
+                    <div class="stock-name">${s.name || ''}</div>
+                </div>
+                <div class="stock-right">
+                    <div class="stock-price">$${formatNumber(s.price)}</div>
+                    <div class="stock-change ${changeClass}">${changeSign}${change.toFixed(2)}%</div>
+                </div>
+                <button class="watchlist-remove" onclick="removeFromWatchlist('${s.symbol}')" title="移除">✕</button>
+            </div>`;
+    }).join('');
+}
+
 async function searchStock() {
     const input = document.getElementById('stock-input');
     const resultDiv = document.getElementById('stock-search-result');
@@ -136,6 +196,10 @@ async function searchStock() {
         const changeClass = change >= 0 ? 'up' : 'down';
         const changeSign = change >= 0 ? '+' : '';
         const changeStr = q.changePercent != null ? `${changeSign}${change.toFixed(2)}%` : '--';
+        const inWatch = isInWatchlist(q.symbol);
+        const watchBtn = inWatch 
+            ? `<button class="watchlist-btn added" onclick="removeFromWatchlist('${q.symbol}')" title="已關注">★</button>`
+            : `<button class="watchlist-btn" onclick="addToWatchlist('${q.symbol}','${q.name || ''}',${q.price},${q.changePercent || 0})" title="加入關注">☆</button>`;
         
         resultDiv.innerHTML = `
             <div style="flex:1">
@@ -146,6 +210,7 @@ async function searchStock() {
                 <div class="stock-price">$${formatNumber(q.price)}</div>
                 <div class="stock-change ${changeClass}">${changeStr}</div>
             </div>
+            ${watchBtn}
             <button class="stock-search-close" onclick="closeStockSearch()">✕</button>
         `;
     } catch (err) {
