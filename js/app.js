@@ -73,7 +73,24 @@ function initTabs() {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentTab = btn.dataset.tab;
-            renderNews(cachedData.news);
+            
+            // Show/hide sections based on tab
+            const newsCard = document.querySelector('.news-card');
+            const portfolioSection = document.getElementById('portfolio-section');
+            
+            if (currentTab === 'portfolio') {
+                // Show portfolio, hide news
+                if (newsCard) newsCard.style.display = 'none';
+                if (portfolioSection) {
+                    portfolioSection.style.display = 'block';
+                    renderPortfolio(cachedData.portfolio);
+                }
+            } else {
+                // Show news, hide portfolio
+                if (newsCard) newsCard.style.display = 'block';
+                if (portfolioSection) portfolioSection.style.display = 'none';
+                renderNews(cachedData.news);
+            }
         });
     });
 }
@@ -416,6 +433,52 @@ function showLoading() {
 function hideLoading() {
     const overlay = document.getElementById('loading-overlay');
     if (overlay) overlay.style.display = 'none';
+}
+
+function renderPortfolio(portfolio) {
+    if (!portfolio || !portfolio.length) {
+        document.getElementById('portfolio-tbody').innerHTML = '<tr><td colspan="6" class="loading">暫無數據</td></tr>';
+        return;
+    }
+    
+    // Calculate totals
+    let totalValue = 0, totalCost = 0;
+    portfolio.forEach(h => {
+        if (h.marketValue !== null) totalValue += h.marketValue;
+        totalCost += h.costValue || 0;
+    });
+    const totalPnL = totalValue - totalCost;
+    const totalPnLPercent = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
+    
+    // Update summary
+    document.getElementById('total-value').textContent = 'HKD $' + totalValue.toLocaleString('zh-HK', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+    document.getElementById('total-cost').textContent = 'HKD $' + totalCost.toLocaleString('zh-HK', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+    
+    const pnlEl = document.getElementById('total-pnl');
+    const pnlSign = totalPnL >= 0 ? '+' : '';
+    const pnlClass = totalPnL >= 0 ? 'profit' : 'loss';
+    pnlEl.textContent = pnlSign + 'HKD $' + Math.abs(totalPnL).toLocaleString('zh-HK', {minimumFractionDigits: 0, maximumFractionDigits: 0}) + ' (' + pnlSign + totalPnLPercent.toFixed(1) + '%)';
+    pnlEl.className = 'value ' + pnlClass;
+    
+    // Build table rows
+    const tbody = document.getElementById('portfolio-tbody');
+    tbody.innerHTML = portfolio.map(h => {
+        const pl = h.profitLoss || 0;
+        const plPct = h.profitLossPercent || 0;
+        const plSign = pl >= 0 ? '+' : '';
+        const plClass = pl >= 0 ? 'profit-text' : 'loss-text';
+        const currency = h.currency === 'USD' ? '$' : 'HKD ';
+        const currencySym = h.market === 'US' ? '$' : 'HKD ';
+        
+        return `<tr>
+            <td class="stock-name">${h.name}<br><span class="symbol">${h.symbol}</span></td>
+            <td class="shares">${h.shares.toLocaleString()}</td>
+            <td class="cost">${currencySym}${h.costPrice.toFixed(2)}</td>
+            <td class="price">${h.currentPrice !== null ? currencySym + h.currentPrice.toFixed(2) : '--'}</td>
+            <td class="value">${h.marketValue !== null ? currencySym + h.marketValue.toLocaleString('zh-HK', {minimumFractionDigits: 0}) : '--'}</td>
+            <td class="pnl ${plClass}">${plSign}${currencySym}${Math.abs(pl).toFixed(0)}<br><span class="pct">(${plSign}${plPct.toFixed(1)}%)</span></td>
+        </tr>`;
+    }).join('');
 }
 
 function showError(message) {

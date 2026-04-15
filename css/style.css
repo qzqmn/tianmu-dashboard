@@ -733,6 +733,96 @@ select:focus {
     padding: 20px 0;
 }
 
+/* ===== Portfolio ===== */
+.portfolio-summary {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.summary-item {
+    flex: 1;
+    min-width: 120px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+}
+
+.summary-item .label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.summary-item .value {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.summary-item .value.profit { color: var(--gain); }
+.summary-item .value.loss { color: var(--loss); }
+
+.portfolio-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.portfolio-table th {
+    background: var(--bg-secondary);
+    padding: 8px 6px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border);
+}
+
+.portfolio-table td {
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+}
+
+.portfolio-table tr:hover td {
+    background: var(--bg-secondary);
+}
+
+.stock-name {
+    font-weight: 500;
+}
+
+.stock-name .symbol {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.shares, .cost, .price, .value {
+    text-align: right;
+    font-family: var(--font-mono);
+}
+
+.pnl {
+    text-align: right;
+    font-weight: 500;
+}
+
+.profit-text { color: var(--gain); }
+.loss-text { color: var(--loss); }
+
+.pnl .pct {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.portfolio-table td.loading {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 1100px) {
     .dashboard-grid {

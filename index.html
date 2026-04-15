@@ -99,11 +99,51 @@
                     <button class="tab-btn" data-tab="tech">科技趨勢</button>
                     <button class="tab-btn" data-tab="crypto">加密貨幣</button>
                     <button class="tab-btn" data-tab="business">財經商業</button>
+                    <button class="tab-btn" data-tab="portfolio">股票總覽</button>
                 </div>
                 <div class="news-content" id="news-data">
                     <ul class="news-list">
                         <li class="loading"><div class="spinner"></div></li>
                     </ul>
+                </div>
+            </section>
+            </section>
+
+            <!-- 股票總覽 -->
+            <section class="card portfolio-card" style="display:none;" id="portfolio-section">
+                <h2>📊 股票總覽</h2>
+                <div id="portfolio-data">
+                    <div class="portfolio-summary" id="portfolio-summary">
+                        <div class="summary-item total">
+                            <span class="label">總市值</span>
+                            <span class="value" id="total-value">--</span>
+                        </div>
+                        <div class="summary-item cost">
+                            <span class="label">總成本</span>
+                            <span class="value" id="total-cost">--</span>
+                        </div>
+                        <div class="summary-item profit">
+                            <span class="label">總盈虧</span>
+                            <span class="value" id="total-pnl">--</span>
+                        </div>
+                    </div>
+                    <div class="portfolio-list" id="portfolio-list">
+                        <table class="portfolio-table">
+                            <thead>
+                                <tr>
+                                    <th>股票</th>
+                                    <th>持股</th>
+                                    <th>成本</th>
+                                    <th>現價</th>
+                                    <th>市值</th>
+                                    <th>盈虧</th>
+                                </tr>
+                            </thead>
+                            <tbody id="portfolio-tbody">
+                                <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
         </div>
