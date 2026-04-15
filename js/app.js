@@ -425,11 +425,22 @@ function renderPortfolio(portfolio) {
         return;
     }
     
-    // Calculate totals
+    // Get USD to HKD rate from forex data
+    const usdToHkd = cachedData.forex?.usdToHkd || 7.78;
+    
+    // Calculate totals (convert USD to HKD)
     let totalValue = 0, totalCost = 0;
     portfolio.forEach(h => {
-        if (h.marketValue !== null) totalValue += h.marketValue;
-        totalCost += h.costValue || 0;
+        const value = h.marketValue !== null ? h.marketValue : 0;
+        const cost = h.costValue || 0;
+        if (h.currency === 'USD') {
+            // Convert USD to HKD
+            totalValue += value * usdToHkd;
+            totalCost += cost * usdToHkd;
+        } else {
+            totalValue += value;
+            totalCost += cost;
+        }
     });
     const totalPnL = totalValue - totalCost;
     const totalPnLPercent = totalCost > 0 ? (totalPnL / totalCost) * 100 : 0;
