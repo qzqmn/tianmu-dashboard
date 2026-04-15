@@ -452,15 +452,14 @@ function renderPortfolio(portfolio) {
         const plSign = pl >= 0 ? '+' : '';
         const plClass = pl >= 0 ? 'profit-text' : 'loss-text';
         const currency = h.currency === 'USD' ? '$' : 'HKD ';
-        const currencySym = h.market === 'US' ? '$' : 'HKD ';
         
         return `<tr>
             <td class="stock-name">${h.name}<br><span class="symbol">${h.symbol}</span></td>
             <td class="shares">${h.shares.toLocaleString()}</td>
-            <td class="cost">${currencySym}${h.costPrice.toFixed(2)}</td>
-            <td class="price">${h.currentPrice !== null ? currencySym + h.currentPrice.toFixed(2) : '--'}</td>
-            <td class="value">${h.marketValue !== null ? currencySym + h.marketValue.toLocaleString('zh-HK', {minimumFractionDigits: 0}) : '--'}</td>
-            <td class="pnl ${plClass}">${plSign}${currencySym}${Math.abs(pl).toFixed(0)}<br><span class="pct">(${plSign}${plPct.toFixed(1)}%)</span></td>
+            <td class="cost">${currency}${h.costPrice.toFixed(2)}</td>
+            <td class="price">${h.currentPrice !== null ? currency + h.currentPrice.toFixed(2) : '--'}</td>
+            <td class="value">${h.marketValue !== null ? currency + h.marketValue.toLocaleString('zh-HK', {minimumFractionDigits: 0}) : '--'}</td>
+            <td class="pnl ${plClass}">${plSign}${currency}${Math.abs(pl).toFixed(0)}<br><span class="pct">(${plSign}${plPct.toFixed(1)}%)</span></td>
         </tr>`;
     }).join('');
 }
